@@ -396,6 +396,17 @@ pub trait UserDataMethods<'lua, T: UserData> {
         R: ToLuaMulti<'lua>,
         M: 'static + MaybeSend + FnMut(&'lua Lua, &mut T, A) -> Result<R>;
 
+    #[cfg(all(feature = "async", not(feature = "lua51")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
+    fn add_async_meta_method<S, A, R, M, MR>(&mut self, name: S, method: M)
+    where
+        T: Clone,
+        S: Into<MetaMethod>,
+        A: FromLuaMulti<'lua>,
+        R: ToLuaMulti<'lua>,
+        M: 'static + MaybeSend + Fn(&'lua Lua, T, A) -> MR,
+        MR: 'lua + Future<Output = Result<R>>;
+
     /// Add a metamethod which accepts generic arguments.
     ///
     /// Metamethods for binary operators can be triggered if either the left or right argument to
@@ -420,6 +431,16 @@ pub trait UserDataMethods<'lua, T: UserData> {
         R: ToLuaMulti<'lua>,
         F: 'static + MaybeSend + FnMut(&'lua Lua, A) -> Result<R>;
 
+    #[cfg(all(feature = "async", not(feature = "lua51")))]
+    #[cfg_attr(docsrs, doc(cfg(feature = "async")))]
+    fn add_async_meta_function<S, A, R, F, FR>(&mut self, name: S, function: F)
+    where
+        S: Into<MetaMethod>,
+        A: FromLuaMulti<'lua>,
+        R: ToLuaMulti<'lua>,
+        F: 'static + MaybeSend + Fn(&'lua Lua, A) -> FR,
+        FR: 'lua + Future<Output = Result<R>>;
+
     //
     // Below are internal methods used in generated code
     //
@@ -433,6 +454,15 @@ pub trait UserDataMethods<'lua, T: UserData> {
 
     #[doc(hidden)]
     fn add_meta_callback(&mut self, _meta: MetaMethod, _callback: Callback<'lua, 'static>) {}
+
+    #[doc(hidden)]
+    #[cfg(feature = "async")]
+    fn add_async_meta_callback(
+        &mut self,
+        _meta: MetaMethod,
+        _callback: AsyncCallback<'lua, 'static>,
+    ) {
+    }
 }
 
 /// Field registry for [`UserData`] implementors.
